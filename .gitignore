@@ -130,3 +130,9 @@ src/
 *.sqlite
 
 *.ply
+
+*.csv
+
+*.png
+
+test.py

@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from CONFIG import LOGGING_LEVEL
+from core.CONFIG import LOGGING_LEVEL
 
 console_logger = logging.getLogger("console")
 formatter = logging.Formatter("%(asctime)s %(levelname)-10s %(module)-10s %(message)s")
