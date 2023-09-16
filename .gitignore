@@ -124,3 +124,9 @@ dmypy.json
 .pyre/
 
 .idea/
+
+src/
+
+*.sqlite
+
+*.ply
