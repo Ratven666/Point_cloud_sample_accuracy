@@ -2,7 +2,7 @@ from sqlalchemy import select, insert, delete
 
 from app.core.classes.ScanDB import ScanDB
 from app.core.classes.abc_classes import VoxelABC
-from app.core import Tables, engine
+from app.core.utils.start_db import Tables, engine
 
 
 class VoxelDB(VoxelABC):

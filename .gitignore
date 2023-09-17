@@ -136,3 +136,15 @@ src/
 *.png
 
 test.py
+
+run.build/
+
+run.dist/
+
+run.onefile-build/
+
+Full.build/
+
+Full.dist/
+
+Full.onefile-build/
