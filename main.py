@@ -1,15 +1,14 @@
 from os import path
 import warnings
 
-from core.utils.logs.console_log_config import console_logger
-from CsvMeshDataExporter import CsvMeshDataExporter
-from MeshStatisticCalculator import MeshStatisticCalculator
-from core.classes.MeshLite import MeshLite
-from core.classes.MeshSegmentModelDB import MeshSegmentModelDB
-from core.classes.ScanDB import ScanDB
-from core.classes.VoxelModelDB import VoxelModelDB
-from core.utils.mesh_utils.mesh_exporters.PlyMseMeshExporter import PlyMseMeshExporter
-from core.utils.start_db import create_db
+from app.CsvMeshDataExporter import CsvMeshDataExporter
+from app.MeshStatisticCalculator import MeshStatisticCalculator
+from app.core.classes.MeshLite import MeshLite
+from app.core.classes.MeshSegmentModelDB import MeshSegmentModelDB
+from app.core.classes.ScanDB import ScanDB
+from app.core.classes.VoxelModelDB import VoxelModelDB
+from app.core.utils.mesh_utils.mesh_exporters.PlyMseMeshExporter import PlyMseMeshExporter
+from app.core.utils.start_db import create_db
 
 
 def main():
