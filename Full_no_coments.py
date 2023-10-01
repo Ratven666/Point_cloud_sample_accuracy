@@ -29,7 +29,6 @@ from PyQt6.QtWidgets import QWidget, QFileDialog, QTableWidgetItem, QMessageBox,
 import pandas as pd
 import seaborn as sns
 import numpy as np
-from PyQt6.uic.properties import QtWidgets
 from scipy.spatial import Delaunay
 from sqlalchemy import select, and_, insert, update, create_engine, MetaData, ForeignKey, \
     Column, Integer, Float, Table, String, desc, func
@@ -174,10 +173,6 @@ def create_mesh_cell_db_table(metadata):
 
 
 class TableInitializer(metaclass=SingletonMeta):
-    """
-    Объект инициализирующий и создающий таблицы в БД
-    """
-
     def __init__(self, metadata):
         self.__db_metadata = metadata
         self.points_db_table = create_points_db_table(self.__db_metadata)
@@ -194,10 +189,6 @@ Tables = TableInitializer(db_metadata)
 
 
 def create_db():
-    """
-    Создает базу данных при ее отстутсвии
-    :return: None
-    """
     db_is_created = os.path.exists(path)
     if not db_is_created:
         db_metadata.create_all(engine)
@@ -206,10 +197,6 @@ def create_db():
 
 
 class PointABC(ABC):
-    """
-    Абстрактный класс точки
-    """
-
     __slots__ = ["id", "X", "Y", "Z", "R", "G", "B"]
 
     def __init__(self, X, Y, Z, R, G, B, id_=None):
@@ -247,19 +234,10 @@ class PointABC(ABC):
 
 
 class Point(PointABC):
-    """
-    Класс точки
-    """
-
     __slots__ = []
 
     @classmethod
     def parse_point_from_db_row(cls, row: tuple):
-        """
-        Метод который создает и возвращает объект Point по данным читаемым из БД
-        :param row: кортеж данных читаемых из БД
-        :return: объект класса Point
-        """
         return cls(id_=row[0], X=row[1], Y=row[2], Z=row[3], R=row[4], G=row[5], B=row[6])
 
 
@@ -366,12 +344,6 @@ class Triangle:
         return False
 
     def get_z_from_xy(self, x, y):
-        """
-        Рассчитывает отметку точки (x, y) в плоскости треугольника
-        :param x: координата x
-        :param y: координата y
-        :return: координата z для точки (x, y)
-        """
         a = -((self.point_1.Y - self.point_0.Y) * (self.point_2.Z - self.point_0.Z) -
               (self.point_2.Y - self.point_0.Y) * (self.point_1.Z - self.point_0.Z))
         b = ((self.point_1.X - self.point_0.X) * (self.point_2.Z - self.point_0.Z) -
@@ -404,11 +376,6 @@ class Triangle:
 
     @classmethod
     def parse_triangle_from_db_row(cls, row: tuple):
-        """
-        Метод который создает и возвращает объект Triangle по данным читаемым из БД
-        :param row: кортеж данных читаемых из БД
-        :return: объект класса Triangle
-        """
         id_ = row[0]
         r = row[1]
         mse = row[2]
@@ -427,9 +394,6 @@ class Triangle:
 
 
 class ScanABC(ABC):
-    """
-    Абстрактный класс скана
-    """
     logger = logging.getLogger(LOGGER)
 
     def __init__(self, scan_name):
@@ -456,13 +420,6 @@ class ScanABC(ABC):
 
 
 def update_scan_borders(scan, point):
-    """
-    Проверяет положение в точки в существующих границах скана
-    и меняет их при выходе точки за их пределы
-    :param scan: скан
-    :param point: точка
-    :return: None
-    """
     if scan.min_X is None:
         scan.min_X, scan.max_X = point.X, point.X
         scan.min_Y, scan.max_Y = point.Y, point.Y
@@ -482,11 +439,6 @@ def update_scan_borders(scan, point):
 
 
 class ScanLite(ScanABC):
-    """
-    Скан не связанный с базой данных
-    Все данные, включая точки при переборе берутся из оперативной памяти
-    """
-
     def __init__(self, scan_name):
         super().__init__(scan_name)
         self._points = []
@@ -498,11 +450,6 @@ class ScanLite(ScanABC):
         return len(self._points)
 
     def add_point(self, point):
-        """
-        Добавляет точку в скан
-        :param point: объект класса Point
-        :return: None
-        """
         if isinstance(point, PointABC):
             self._points.append(point)
             self.len += 1
@@ -513,13 +460,6 @@ class ScanLite(ScanABC):
 
     @classmethod
     def create_from_another_scan(cls, scan, copy_with_points=True):
-        """
-        Создает скан типа ScanLite и копирует в него данные из другого скана
-        :param scan: копируемый скан
-        :param copy_with_points: определяет нужно ли копировать скан вместе с точками
-        :type copy_with_points: bool
-        :return: объект класса ScanLite
-        """
         scan_lite = cls(scan.scan_name)
         scan_lite.id = scan.id
         scan_lite.len = 0
@@ -541,9 +481,6 @@ class ScanLite(ScanABC):
 
 
 class ScanParserABC(ABC):
-    """
-    Абстрактный класс парсера данных для скана
-    """
     logger = logging.getLogger(LOGGER)
 
     def __str__(self):
@@ -554,12 +491,6 @@ class ScanParserABC(ABC):
 
     @staticmethod
     def _check_file_extension(file_name, __supported_file_extensions__):
-        """
-        Проверяет соответствует ли расширение файла допустимому для парсера
-        :param file_name: имя и путь до файла, который будет загружаться
-        :param __supported_file_extensions__: список допустимых расширений для выбранного парсера
-        :return: None
-        """
         file_extension = f".{file_name.split('.')[-1]}"
         if file_extension not in __supported_file_extensions__:
             raise TypeError(f"Неправильный для парсера тип файла. "
@@ -567,10 +498,6 @@ class ScanParserABC(ABC):
 
     @staticmethod
     def _get_last_point_id():
-        """
-        Возвращает последний id для точки в таблице БД points
-        :return: последний id для точки в таблице БД points
-        """
         with engine.connect() as db_connection:
             stmt = (select(Tables.points_db_table.c.id).order_by(desc("id")))
             last_point_id = db_connection.execute(stmt).first()
@@ -581,21 +508,10 @@ class ScanParserABC(ABC):
 
     @abstractmethod
     def parse(self, file_name: str):
-        """
-        Запускает процедуру парсинга
-        :param file_name: имя и путь до файла, который будет загружаться
-        :return:
-        """
         pass
 
 
 class ScanTxtParser(ScanParserABC):
-    """
-    Парсер точек из текстового txt формата
-    Формат данных:
-        4.2517 -14.2273 33.4113 208 195 182 -0.023815 -0.216309 0.976035
-          X        Y       Z     R   G   B      nX nY nZ (не обязательны и пока игнорируются)
-    """
     __supported_file_extension__ = [".txt"]
 
     def __init__(self, chunk_count=POINTS_CHUNK_COUNT):
@@ -603,13 +519,6 @@ class ScanTxtParser(ScanParserABC):
         self.__last_point_id = None
 
     def parse(self, file_name=FILE_NAME):
-        """
-        Запускает процедуру парсинга файла и возвращает списки словарей с данными для загрузки в БД
-        размером не превышающим POINTS_CHUNK_COUNT
-        При запуске выполняется процедурка проверки расширения файла
-        :param file_name: путь до файла из которго будут загружаться данные
-        :return: список точек готовый к загрузке в БД
-        """
         self._check_file_extension(file_name, self.__supported_file_extension__)
         self.__last_point_id = self._get_last_point_id()
 
@@ -634,12 +543,6 @@ class ScanTxtParser(ScanParserABC):
 
 
 def update_scan_in_db_from_scan(updated_scan, db_connection=None):
-    """
-    Обновляет значения метрик скана в БД
-    :param updated_scan: Объект скана для которого обновляются метрики
-    :param db_connection: Открытое соединение с БД
-    :return: None
-    """
     stmt = update(Tables.scans_db_table) \
         .where(Tables.scans_db_table.c.id == updated_scan.id) \
         .values(scan_name=updated_scan.scan_name,
@@ -660,11 +563,6 @@ def update_scan_in_db_from_scan(updated_scan, db_connection=None):
 
 
 def calk_scan_metrics(scan_id):
-    """
-    Рассчитывает метрики скана средствами SQL
-    :param scan_id: id скана для которого будет выполняться расчет метрик
-    :return: словарь с метриками скана
-    """
     with engine.connect() as db_connection:
         stmt = select(func.count(Tables.points_db_table.c.id).label("len"),
                       func.min(Tables.points_db_table.c.X).label("min_X"),
@@ -683,12 +581,6 @@ def calk_scan_metrics(scan_id):
 
 
 def update_scan_metrics(scan):
-    """
-    Рассчитывает значения метрик скана по точкам загруженным в БД
-    средствами SQL и обновляет их в самом скане
-    :param scan: скан для которого рассчитываются и в котором обновляются метрики
-    :return: скан с обновленными  метриками
-    """
     scan_metrics = calk_scan_metrics(scan_id=scan.id)
     scan.len = scan_metrics["len"]
     scan.min_X, scan.max_X = scan_metrics["min_X"], scan_metrics["max_X"]
@@ -698,22 +590,11 @@ def update_scan_metrics(scan):
 
 
 class ImportedFileDB:
-    """
-    Класс определяющий логику контроля повторной загрузки файла с данными
-    """
-
     def __init__(self, file_name):
         self.__file_name = file_name
         self.__hash = None
 
     def is_file_already_imported_into_scan(self, scan):
-        """
-        Проверяет был ли этот файл уже загружен в скан
-
-        :param scan: скан в который загружаются данные из файла
-        :type scan: ScanDB
-        :return: True / False
-        """
         select_ = select(Tables.imported_files_db_table).where(
             and_(Tables.imported_files_db_table.c.file_name == self.__file_name,
                  Tables.imported_files_db_table.c.scan_id == scan.id))
@@ -724,12 +605,6 @@ class ImportedFileDB:
         return True
 
     def insert_in_db(self, scan):
-        """
-        Добавляет в таблицу БД imported_files данные о файле и скане в который он был загружен
-        :param scan: скан в который загружаются данные из файла
-        :type scan: ScanDB
-        :return: None
-        """
         with engine.connect() as db_connection:
             stmt = insert(Tables.imported_files_db_table).values(file_name=self.__file_name,
                                                                  scan_id=scan.id)
@@ -738,29 +613,12 @@ class ImportedFileDB:
 
 
 class ScanLoader:
-    """
-    Класс, определяющий логику загрузки точек в БД
-    """
     __logger = logging.getLogger(LOGGER)
 
     def __init__(self, scan_parser=ScanTxtParser()):
         self.__scan_parser = scan_parser
 
     def load_data(self, scan, file_name: str):
-        """
-        Загрузка данных из файла в базу данных
-
-        :param scan: скан в который загружаются данные из файла
-        :type scan: ScanDB
-        :param file_name: путь до файла с данными
-        :type file_name: str
-        :return: None
-
-        При выполнении проверяется был ли ранее произведен импорт в этот скан из этого файла.
-        Если файл ранее не импортировался - происходит загрузка.
-        Полсле загрузки данных рассчитываются новые метрики скана, которые обновляют его свойства в БД
-        Файл с данными записывается в таблицу imported_files
-        """
         imp_file = ImportedFileDB(file_name)
 
         if imp_file.is_file_already_imported_into_scan(scan):
@@ -781,15 +639,6 @@ class ScanLoader:
 
     @staticmethod
     def __get_points_scans_list(scan, points):
-        """
-        Собирает список словарей для пакетной загрузки в таблицу points_scans_db_table
-
-        :param scan: скан в который загружаются данные из файла
-        :type scan: ScanDB
-        :param points: список точек полученный из парсера
-        :type points: list
-        :return: список словарей для пакетной загрузки в таблицу points_scans_db_table
-        """
         points_scans = []
         for point in points:
             points_scans.append({"point_id": point["id"], "scan_id": scan.id})
@@ -797,13 +646,6 @@ class ScanLoader:
 
     @staticmethod
     def __insert_to_db(points, points_scans, db_engine_connection):
-        """
-        Загружает данные о точках и их связях со сканами в БД
-        :param points: список словарей для пакетной загрузки в таблицу points_db_table
-        :param points_scans: список словарей для пакетной загрузки в таблицу points_scans_db_table
-        :param db_engine_connection: открытое соединение с БД
-        :return: None
-        """
         db_engine_connection.execute(Tables.points_db_table.insert(), points)
         db_engine_connection.execute(Tables.points_scans_db_table.insert(), points_scans)
 
@@ -821,11 +663,6 @@ class ScanLoader:
 
 
 class SqlLiteScanIterator:
-    """
-    Иттератор скана из БД SQLite
-    Реализован через стандартную библиотеку sqlite3
-    """
-
     def __init__(self, scan):
         self.__path = os.path.join("", DATABASE_NAME)
         self.scan_id = scan.id
@@ -858,43 +695,20 @@ class SqlLiteScanIterator:
 
 
 class ScanDB(ScanABC):
-    """
-    Скан связанный с базой данных
-    Точки при переборе скана берутся напрямую из БД
-    """
-
     def __init__(self, scan_name, db_connection=None):
         super().__init__(scan_name)
         self.__init_scan(db_connection)
 
     def __iter__(self):
-        """
-        Иттератор скана берет точки из БД
-        """
         return iter(SqlLiteScanIterator(self))
 
     def load_scan_from_file(self,
                             scan_loader=ScanLoader(scan_parser=ScanTxtParser(chunk_count=POINTS_CHUNK_COUNT)),
                             file_name=FILE_NAME):
-        """
-        Загружает точки в скан из файла
-        Ведется запись в БД
-        Обновляются метрики скана в БД
-        :param scan_loader: объект определяющий логику работы с БД при загрузке точек (
-        принимает в себя парсер определяющий логику работы с конкретным типом файлов)
-        :type scan_loader: ScanLoader
-        :param file_name: путь до файла из которого будут загружаться данные
-        :return: None
-        """
         scan_loader.load_data(self, file_name)
 
     @classmethod
     def get_scan_from_id(cls, scan_id: int):
-        """
-        Возвращает объект скана по id
-        :param scan_id: id скана который требуется загрузить и вернуть из БД
-        :return: объект ScanDB с заданным id
-        """
         select_ = select(Tables.scans_db_table).where(Tables.scans_db_table.c.id == scan_id)
         with engine.connect() as db_connection:
             db_scan_data = db_connection.execute(select_).mappings().first()
@@ -904,14 +718,6 @@ class ScanDB(ScanABC):
                 raise ValueError("Нет скана с таким id!!!")
 
     def __init_scan(self, db_connection=None):
-        """
-        Инициализирует скан при запуске
-        Если скан с таким именем уже есть в БД - запускает копирование данных из БД в атрибуты скана
-        Если такого скана нет - создает новую запись в БД
-        :param db_connection: Открытое соединение с БД
-        :return: None
-        """
-
         def init_logic(db_conn):
             select_ = select(Tables.scans_db_table).where(Tables.scans_db_table.c.scan_name == self.scan_name)
             db_scan_data = db_conn.execute(select_).mappings().first()
@@ -930,11 +736,6 @@ class ScanDB(ScanABC):
             init_logic(db_connection)
 
     def __copy_scan_data(self, db_scan_data: dict):
-        """
-        Копирует данные записи из БД в атрибуты скана
-        :param db_scan_data: Результат запроса к БД
-        :return: None
-        """
         self.id = db_scan_data["id"]
         self.scan_name = db_scan_data["scan_name"]
         self.len = db_scan_data["len"]
@@ -944,9 +745,6 @@ class ScanDB(ScanABC):
 
 
 class VoxelModelABC(ABC):
-    """
-    Абстрактный класс воксельной модели
-    """
     logger = logging.getLogger(LOGGER)
 
     def __init__(self, scan, step, dx, dy, dz, is_2d_vxl_mdl=True):
@@ -968,11 +766,6 @@ class VoxelModelABC(ABC):
         return dx % 1, dy % 1, dz % 1
 
     def __name_generator(self, scan):
-        """
-        Конструктор имени воксельной модели
-        :param scan: базовый скан, по которому создается модель
-        :return: None
-        """
         vm_type = "2D" if self.is_2d_vxl_mdl else "3D"
         return f"VM_{vm_type}_Sc:{scan.scan_name}_st:{self.step}_dx:{self.dx:.2f}_dy:{self.dz:.2f}_dy:{self.dz:.2f}"
 
@@ -993,10 +786,6 @@ class VoxelModelABC(ABC):
 
 
 class VoxelABC(ABC):
-    """
-    Абстрактный класс вокселя
-    """
-
     logger = logging.getLogger(LOGGER)
 
     def __init__(self, X, Y, Z, step, vxl_mdl_id):
@@ -1022,10 +811,6 @@ class VoxelABC(ABC):
                 "R": self.R, "G": self.G, "B": self.B}
 
     def __name_generator(self):
-        """
-        Конструктор имени вокселя
-        :return: None
-        """
         return (f"VXL_VM:{self.vxl_mdl_id}_s{self.step}_"
                 f"X:{round(self.X, 5)}_"
                 f"Y:{round(self.Y, 5)}_"
@@ -1046,9 +831,6 @@ class VoxelABC(ABC):
 
 
 class VoxelLite(VoxelABC):
-    """
-    Воксель не связанный с базой данных
-    """
     __slots__ = ["id", "X", "Y", "Z", "step", "vxl_mdl_id", "vxl_name", "scan_id", "len", "R", "G", "B"]
 
     def __init__(self, X, Y, Z, step, vxl_mdl_id):
@@ -1069,11 +851,6 @@ class VoxelLite(VoxelABC):
 
 
 class VMRawIterator:
-    """
-    Универсальный иттератор вокселльной модели из БД
-    Реализован средствами sqlalchemy
-    """
-
     def __init__(self, vxl_model):
         self.__vxl_model = vxl_model
         self.__engine = engine.connect()
@@ -1105,10 +882,6 @@ class VMRawIterator:
 
 
 class VMFullBaseIterator:
-    """
-    Иттератор полной воксельной модели
-    """
-
     def __init__(self, vxl_mdl):
         self.vxl_mdl = vxl_mdl
         self.x = 0
@@ -1133,22 +906,12 @@ class VMFullBaseIterator:
 
 
 class VMSeparatorABC(ABC):
-    """
-    Абстрактный сепоратор вокселььной модели
-    """
-
     @abstractmethod
     def separate_voxel_model(self, voxel_model, scan):
         pass
 
 
 def update_voxel_model_in_db_from_voxel_model(updated_voxel_model, db_connection=None):
-    """
-    Обновляет значения метрик воксельной модели в БД
-    :param updated_voxel_model: Объект воксельной модели для которой обновляются метрики
-    :param db_connection: Открытое соединение с БД
-    :return: None
-    """
     stmt = update(Tables.voxel_models_db_table) \
         .where(Tables.voxel_models_db_table.c.id == updated_voxel_model.id) \
         .values(id=updated_voxel_model.id,
@@ -1175,25 +938,11 @@ def update_voxel_model_in_db_from_voxel_model(updated_voxel_model, db_connection
 
 
 class FastVMSeparator(VMSeparatorABC):
-    """
-    Быстрый сепоратор воксельной модели через создание
-    полной воксельной структуры в оперативной памяти
-    """
-
     def __init__(self):
         self.voxel_model = None
         self.voxel_structure = None
 
     def separate_voxel_model(self, voxel_model, scan):
-        """
-        Общая логика разбиения воксельной модели
-        :param voxel_model: воксельная модель
-        :param scan: скан
-        :return: None
-        1. Создается полная воксельная структура
-        2. Скан разбивается на отдельные воксели
-        3. Загружает метрики сканов и вокселей игнорируя пустые
-        """
         voxel_model.logger.info(f"Начато создание структуры {voxel_model.vm_name}")
         self.__create_full_vxl_struct(voxel_model)
         voxel_model.logger.info(f"Структура {voxel_model.vm_name} создана")
@@ -1205,11 +954,6 @@ class FastVMSeparator(VMSeparatorABC):
         voxel_model.logger.info(f"Загрузка метрик сканов и вокселей в БД завершена")
 
     def __create_full_vxl_struct(self, voxel_model):
-        """
-        Создается полная воксельная структура
-        :param voxel_model: воксельная модель
-        :return: None
-        """
         self.voxel_model = voxel_model
         self.voxel_structure = [[[VoxelLite(voxel_model.min_X + x * voxel_model.step,
                                             voxel_model.min_Y + y * voxel_model.step,
@@ -1221,11 +965,6 @@ class FastVMSeparator(VMSeparatorABC):
         self.voxel_model.voxel_structure = self.voxel_structure
 
     def __update_scan_and_voxel_data(self, scan):
-        """
-        Пересчитывает метрики сканов и вокселей по базовому скану scan
-        :param scan: скан по которому разбивается воксельная модель
-        :return: None
-        """
         for point in scan:
             vxl_md_X = int((point.X - self.voxel_model.min_X) // self.voxel_model.step)
             vxl_md_Y = int((point.Y - self.voxel_model.min_Y) // self.voxel_model.step)
@@ -1240,33 +979,17 @@ class FastVMSeparator(VMSeparatorABC):
 
     @staticmethod
     def __update_scan_data(scan, point):
-        """
-        Обновляет значения метрик скана (количество точек и границы)
-        :param scan: обновляемый скан
-        :param point: добавляемая в скан точка
-        :return: None
-        """
         scan.len += 1
         update_scan_borders(scan, point)
 
     @staticmethod
     def __update_voxel_data(voxel, point):
-        """
-        Обновляет значения метрик вокселя (цвет и количество точек)
-        :param voxel: обновляемый воксель
-        :param point: точка, попавшая в воксель
-        :return: None
-        """
         voxel.R = (voxel.R * voxel.len + point.R) / (voxel.len + 1)
         voxel.G = (voxel.G * voxel.len + point.G) / (voxel.len + 1)
         voxel.B = (voxel.B * voxel.len + point.B) / (voxel.len + 1)
         voxel.len += 1
 
     def __init_scans_and_voxels_id(self):
-        """
-        Иничиирует в сканы и воксели модели id
-        :return: None
-        """
         last_scan_id_stmt = (select(Tables.scans_db_table.c.id).order_by(desc("id")))
         last_voxels_id_stmt = (select(Tables.voxels_db_table.c.id).order_by(desc("id")))
         with engine.connect() as db_connection:
@@ -1281,11 +1004,6 @@ class FastVMSeparator(VMSeparatorABC):
             voxel.scan.id = last_scan_id
 
     def __load_scan_and_voxel_data_in_db(self):
-        """
-        Загружает значения метрик сканов и вокселей в БД
-        игнорируя пустые воксели
-        :return: None
-        """
         voxels = []
         scans = []
         voxel_counter = 0
@@ -1326,10 +1044,6 @@ class FastVMSeparator(VMSeparatorABC):
 
 
 class VoxelModelDB(VoxelModelABC):
-    """
-    Воксельная модель связанная с базой данных
-    """
-
     def __init__(self, scan, step, dx=0.0, dy=0.0, dz=0.0, is_2d_vxl_mdl=True,
                  voxel_model_separator=FastVMSeparator()):
         super().__init__(scan, step, dx, dy, dz, is_2d_vxl_mdl)
@@ -1341,13 +1055,6 @@ class VoxelModelDB(VoxelModelABC):
         return iter(VMRawIterator(self))
 
     def __init_vxl_mdl(self, scan):
-        """
-        Инициализирует воксельную модель при запуске
-        Если воксельная модеьл с таким именем уже есть в БД - запускает копирование данных из БД в атрибуты модели
-        Если такой воксельной модели нет - создает новую запись в БД и запускает процедуру рабиения скана на воксели
-        по логике переданного в конструкторе воксельной модели разделителя voxel_model_separator
-        :return: None
-        """
         select_ = select(Tables.voxel_models_db_table).where(Tables.voxel_models_db_table.c.vm_name == self.vm_name)
 
         with engine.connect() as db_connection:
@@ -1381,12 +1088,6 @@ class VoxelModelDB(VoxelModelABC):
                 self.voxel_model_separator.separate_voxel_model(self, scan)
 
     def __calc_vxl_md_metric(self, scan):
-        """
-        Рассчитывает границы воксельной модели и максимальное количество вокселей
-        исходя из размера вокселя и границ скана
-        :param scan: скан на основе которого рассчитываются границы модели
-        :return: None
-        """
         if len(scan) == 0:
             return None
         self.min_X = (scan.min_X // self.step * self.step) - ((1 - self.dx) % 1 * self.step)
@@ -1406,11 +1107,6 @@ class VoxelModelDB(VoxelModelABC):
         self.len = self.X_count * self.Y_count * self.Z_count
 
     def __copy_vm_data(self, db_vm_data: dict):
-        """
-        Копирует данные записи из БД в атрибуты вокселбной модели
-        :param db_vm_data: Результат запроса к БД
-        :return: None
-        """
         self.id = db_vm_data["id"]
         self.vm_name = db_vm_data["vm_name"]
         self.step = db_vm_data["step"]
@@ -1440,7 +1136,6 @@ class TriangulatorABC(ABC):
 
 
 class ScipyTriangulator(TriangulatorABC):
-
     def __init__(self, scan):
         super().__init__(scan=scan)
         self.points_id = None
@@ -1456,10 +1151,6 @@ class ScipyTriangulator(TriangulatorABC):
                 )
 
     def __get_data_dict(self):
-        """
-        Возвращает словарь с данными для построения триангуляции
-        :return: словарь с данными для построения триангуляции
-        """
         point_id_lst, x_lst, y_lst, z_lst, c_lst = [], [], [], [], []
         for point in self.scan:
             point_id_lst.append(point.id)
@@ -1470,10 +1161,6 @@ class ScipyTriangulator(TriangulatorABC):
         return {"id": point_id_lst, "x": x_lst, "y": y_lst, "z": z_lst, "color": c_lst}
 
     def __calk_delone_triangulation(self):
-        """
-        Рассчитываает треугольники между точками
-        :return: славарь с указанием вершин треугольников
-        """
         points2D = self.vertices[:, :2]
         tri = Delaunay(points2D)
         i_lst, j_lst, k_lst = ([triplet[c] for triplet in tri.simplices] for c in range(3))
@@ -1481,13 +1168,6 @@ class ScipyTriangulator(TriangulatorABC):
 
     @staticmethod
     def __calk_faces_colors(ijk_dict, scan_data):
-        """
-        Рассчитывает цвета треугольников на основании усреднения цветов точек, образующих
-        треугольник
-        :param ijk_dict: словарь с вершинами треугольников
-        :param scan_data: словарь с данными о точках скана
-        :return: список цветов треугольников в формате [r, g, b] от 0 до 255
-        """
         c_lst = []
         for idx in range(len(ijk_dict["i_lst"])):
             c_i = scan_data["color"][ijk_dict["i_lst"][idx]]
@@ -1511,7 +1191,6 @@ class ScipyTriangulator(TriangulatorABC):
 
 
 class MeshABC:
-
     def __init__(self, scan, scan_triangulator=ScipyTriangulator):
         self.scan = scan
         self.scan_triangulator = scan_triangulator
@@ -1573,7 +1252,6 @@ class MeshABC:
 
 
 class MeshLite(MeshABC):
-
     def __init__(self, scan, scan_triangulator=ScipyTriangulator):
         super().__init__(scan, scan_triangulator)
         self.triangles = []
@@ -1613,10 +1291,6 @@ class MeshLite(MeshABC):
 
 
 class CellABC(ABC):
-    """
-    Абстрактный класс ячейки сегментированной модели
-    """
-
     def __str__(self):
         return f"{self.__class__.__name__} [id: {self.voxel_id}]"
 
@@ -1625,22 +1299,10 @@ class CellABC(ABC):
 
     @abstractmethod
     def get_z_from_xy(self, x, y):
-        """
-        Рассчитывает отметку точки (x, y) в ячейке
-        :param x: координата x
-        :param y: координата y
-        :return: координата z для точки (x, y)
-        """
         pass
 
     @abstractmethod
     def get_mse_z_from_xy(self, x, y):
-        """
-        Рассчитывает СКП отметки точки (x, y) в ячейке
-        :param x: координата x
-        :param y: координата y
-        :return: СКП координаты z для точки (x, y)
-        """
         pass
 
     @abstractmethod
@@ -1649,19 +1311,9 @@ class CellABC(ABC):
 
     @abstractmethod
     def _save_cell_data_in_db(self, db_connection):
-        """
-        Сохраняет данные ячейки из модели в БД
-        :param db_connection: открытое соединение с БД
-        :return: None
-        """
         pass
 
     def _load_cell_data_from_db(self, db_connection):
-        """
-        Загружает данные ячейки из БД в модель
-        :param db_connection: открытое соединение с БД
-        :return: None
-        """
         select_ = select(self.db_table) \
             .where(and_(self.db_table.c.voxel_id == self.voxel.id,
                         self.db_table.c.base_model_id == self.dem_model.id))
@@ -1671,11 +1323,6 @@ class CellABC(ABC):
 
     @abstractmethod
     def _copy_cell_data(self, db_cell_data):
-        """
-        Копирует данные из записи БД в атрибуты ячейки
-        :param db_cell_data: загруженные из БД данные
-        :return: None
-        """
         pass
 
 
@@ -1694,12 +1341,6 @@ class MeshCellDB(CellABC):
         self.triangles = []
 
     def get_z_from_xy(self, x, y):
-        """
-        Рассчитывает отметку точки (x, y) в ячейке
-        :param x: координата x
-        :param y: координата y
-        :return: координата z для точки (x, y)
-        """
         point = Point(x, y, 0, 0, 0, 0)
         for triangle in self.triangles:
             if triangle.is_point_in_triangle(point):
@@ -1707,12 +1348,6 @@ class MeshCellDB(CellABC):
         return None
 
     def get_mse_z_from_xy(self, x, y):
-        """
-        Рассчитывает СКП отметки точки (x, y) в ячейке
-        :param x: координата x
-        :param y: координата y
-        :return: СКП координаты z для точки (x, y)
-        """
         point = Point(x, y, 0, 0, 0, 0)
         for triangle in self.triangles:
             if triangle.is_point_in_triangle(point):
@@ -1727,11 +1362,6 @@ class MeshCellDB(CellABC):
                 "mse": self.mse}
 
     def _save_cell_data_in_db(self, db_connection):
-        """
-        Сохраняет данные ячейки из модели в БД
-        :param db_connection: открытое соединение с БД
-        :return: None
-        """
         stmt = insert(self.db_table).values(voxel_id=self.voxel.id,
                                             base_model_id=self.dem_model.id,
                                             count_of_mesh_points=self.count_of_mesh_points,
@@ -1742,11 +1372,6 @@ class MeshCellDB(CellABC):
         db_connection.execute(stmt)
 
     def _copy_cell_data(self, db_cell_data):
-        """
-        Копирует данные из записи БД в атрибуты ячейки
-        :param db_cell_data: загруженные из БД данные
-        :return: None
-        """
         self.voxel_id = db_cell_data["voxel_id"]
         self.base_model_id = db_cell_data["base_model_id"]
         self.count_of_mesh_points = db_cell_data["count_of_mesh_points"]
@@ -1756,10 +1381,6 @@ class MeshCellDB(CellABC):
 
 
 class SegmentedModelABC(ABC):
-    """
-    Абстрактный класс сегментированной модели
-    """
-
     logger = logging.getLogger(LOGGER)
     db_table = Tables.dem_models_db_table
 
@@ -1789,28 +1410,14 @@ class SegmentedModelABC(ABC):
 
     @abstractmethod
     def _calk_segment_model(self):
-        """
-        Метод определяющий логику создания конкретной модели
-        :return: None
-        """
         pass
 
     def _create_model_structure(self, element_class):
-        """
-        Создание структуры сегментированной модели
-        :param element_class: Класс ячейки конкретной модели
-        :return: None
-        """
         for voxel in self.voxel_model:
             model_key = f"{voxel.X:.5f}_{voxel.Y:.5f}_{voxel.Z:.5f}"
             self._model_structure[model_key] = element_class(voxel, self)
 
     def get_model_element_for_point(self, point):
-        """
-        Возвращает ячейку содержащую точку point
-        :param point: точка для которой нужна соответствующая ячейка
-        :return: объект ячейки модели, содержащая точку point
-        """
         X = point.X // self.voxel_model.step * self.voxel_model.step
         Y = point.Y // self.voxel_model.step * self.voxel_model.step
         if self.voxel_model.is_2d_vxl_mdl is False:
@@ -1821,11 +1428,6 @@ class SegmentedModelABC(ABC):
         return self._model_structure.get(model_key, None)
 
     def _calk_model_mse(self, db_connection):
-        """
-        Расчитывает СКП всей модели по СКП отдельных ячеек
-        :param db_connection: открытое соединение с БД
-        :return: None
-        """
         vv = 0
         sum_of_r = 0
         for cell in self:
@@ -1842,28 +1444,14 @@ class SegmentedModelABC(ABC):
         self.logger.info(f"Расчет СКП модели {self.model_name} завершен и загружен в БД")
 
     def _load_cell_data_from_db(self, db_connection):
-        """
-        Загружает данные всех ячеек модели из БД
-        :param db_connection: открытое соединение с БД
-        :return: None
-        """
         for cell in self._model_structure.values():
             cell._load_cell_data_from_db(db_connection)
 
     def _save_cell_data_in_db(self, db_connection):
-        """
-        Сохраняет данные из всех ячеек модели в БД
-        :param db_connection: открытое соединение с БД
-        :return: None
-        """
         for cell in self._model_structure.values():
             cell._save_cell_data_in_db(db_connection)
 
     def _get_last_model_id(self):
-        """
-        Возвращает последний id для сегментированной модели в таблице БД dem_models
-        :return: последний id для сегментированной модели в таблице БД dem_models
-        """
         with engine.connect() as db_connection:
             stmt = (select(self.db_table.c.id).order_by(desc("id")))
             last_model_id = db_connection.execute(stmt).first()
@@ -1873,11 +1461,6 @@ class SegmentedModelABC(ABC):
                 return 0
 
     def _copy_model_data(self, db_model_data: dict):
-        """
-        Копирует данные из записи БД в атрибуты сегментированной модели
-        :param db_model_data: Данные записи из БД
-        :return: None
-        """
         self.id = db_model_data["id"]
         self.base_voxel_model_id = db_model_data["base_voxel_model_id"]
         self.model_type = db_model_data["model_type"]
@@ -1885,13 +1468,6 @@ class SegmentedModelABC(ABC):
         self.mse_data = db_model_data["MSE_data"]
 
     def __init_model(self):
-        """
-        Инициализирует сегментированную модель при запуске
-        Если модель для воксельной модели нужного типа уже есть в БД - запускает
-        копирование данных из БД в атрибуты модели
-        Если такой модели нет - создает новую модели и запись в БД
-        :return: None
-        """
         select_ = select(self.db_table) \
             .where(and_(self.db_table.c.base_voxel_model_id == self.voxel_model.id,
                         self.db_table.c.model_type == self.model_type))
@@ -1918,11 +1494,6 @@ class SegmentedModelABC(ABC):
                 self.logger.info(f"Расчет модели {self.model_name} завершен и загружен в БД\n")
 
     def _calk_cell_mse(self, base_scan):
-        """
-        Расчитываает СКП в ячейках сегментированной модели от точек базового скана
-        :param base_scan: базовый скан из воксельной модели
-        :return: None
-        """
         for point in base_scan:
             try:
                 cell = self.get_model_element_for_point(point)
@@ -1946,7 +1517,6 @@ class SegmentedModelABC(ABC):
 
 
 class MeshSegmentModelDB(SegmentedModelABC):
-
     def __init__(self, voxel_model, mesh):
         self.model_type = "MESH"
         self.model_name = f"{self.model_type}_from_{voxel_model.vm_name}"
@@ -1956,20 +1526,11 @@ class MeshSegmentModelDB(SegmentedModelABC):
         super().__init__(voxel_model, self.cell_type)
 
     def _calk_segment_model(self):
-        """
-        Метод определяющий логику создания конкретной модели
-        :return: None
-        """
         self.logger.info(f"Начат расчет модели {self.model_name}")
         base_scan = ScanDB.get_scan_from_id(self.voxel_model.base_scan_id)
         self._calk_cell_mse(base_scan)
 
     def _calk_cell_mse(self, base_scan):
-        """
-        Расчитываает СКП в ячейках сегментированной модели от точек базового скана
-        :param base_scan: базовый скан из воксельной модели
-        :return: None
-        """
         for point in base_scan:
             cell = self.get_model_element_for_point(point)
             if cell is None:
@@ -1994,11 +1555,6 @@ class MeshSegmentModelDB(SegmentedModelABC):
         self.logger.info(f"Расчет СКП высот в ячейках модели {self.model_name} завершен")
 
     def _create_model_structure(self, element_class):
-        """
-        Создание структуры сегментированной модели
-        :param element_class: Класс ячейки конкретной модели
-        :return: None
-        """
         for voxel in self.voxel_model:
             model_key = f"{voxel.X:.5f}_{voxel.Y:.5f}_{voxel.Z:.5f}"
             self._model_structure[model_key] = element_class(voxel, self)
@@ -2035,7 +1591,6 @@ class MeshSegmentModelDB(SegmentedModelABC):
 
 
 class CsvMeshDataExporter:
-
     def __init__(self, mesh):
         self.mesh = mesh
         self.file_name = f"{self.mesh.mesh_name}.csv"
@@ -2062,7 +1617,6 @@ class CsvMeshDataExporter:
 
 
 class MeshStatisticCalculator:
-
     def __init__(self, mesh):
         sns.set_style("darkgrid")
         self.mesh = mesh
@@ -2106,7 +1660,6 @@ class MeshStatisticCalculator:
 
 
 class MeshExporterABC(ABC):
-
     def __init__(self, mesh):
         self.mesh = mesh
         self.vertices = []
@@ -2141,7 +1694,6 @@ class MeshExporterABC(ABC):
 
 
 class PlyMeshExporter(MeshExporterABC):
-
     def __init__(self, mesh):
         super().__init__(mesh)
 
@@ -2249,7 +1801,6 @@ class PlyMseMeshExporter(PlyMeshExporter):
 
 
 class UiPointCloudAnalizer(QWidget):
-
     def __init__(self):
         super().__init__()
         self.setupUi()
@@ -2307,13 +1858,13 @@ class UiPointCloudAnalizer(QWidget):
         self.progressBar.setProperty("value", 70)
         mesh.calk_mesh_mse(mesh_sm)
         self.progressBar.setProperty("value", 80)
-        ####################################################
+
         csv_exp = CsvMeshDataExporter(mesh)
         csv_exp.export_mesh_data()
         stat_calculator = MeshStatisticCalculator(mesh)
         stat_dict = stat_calculator.save_statistic()
         self.progressBar.setProperty("value", 85)
-        ####################################################
+
         if self.cb_mse_graf.isChecked():
             stat_calculator.save_rmse_distributions_histograms()
         if self.cb_r_graf.isChecked():
@@ -2323,19 +1874,19 @@ class UiPointCloudAnalizer(QWidget):
         if self.cb_pair_plot_graf.isChecked():
             stat_calculator.save_pair_plot_distributions_histograms()
         self.progressBar.setProperty("value", 95)
-        ####################################################
+
         if self.cb_main_tin_surface.isChecked():
             min_mse = None if self.sb_min_mse_tin_surf.value() == 0 else self.sb_min_mse_tin_surf.value()
             max_mse = None if self.sb_max_mse_tin_surf.value() == 99.99 else self.sb_max_mse_tin_surf.value()
             PlyMseMeshExporter(mesh, min_mse=min_mse, max_mse=max_mse).export()
         self.progressBar.setProperty("value", 100)
-        ###################################################
+
         if self.cb_save_full_tin_csv_log.isChecked() is False:
             os.remove(csv_exp.file_name)
         if self.cb_save_db.isChecked() is False:
             engine.dispose()
             os.remove(os.path.join(".", DATABASE_NAME))
-        ###################################################
+
         self.result_table.setEnabled(True)
         self.result_table.setItem(0, 0, QTableWidgetItem(str(round(stat_dict["Total_area"], 4))))
         self.result_table.setItem(0, 1, QTableWidgetItem(str(stat_dict["Count_of_r"])))
@@ -2343,7 +1894,7 @@ class UiPointCloudAnalizer(QWidget):
         self.result_table.setItem(0, 3, QTableWidgetItem(str(round(stat_dict["Min_MSE"], 4))))
         self.result_table.setItem(0, 4, QTableWidgetItem(str(round(stat_dict["Max_MSE"], 4))))
         self.result_table.setItem(0, 5, QTableWidgetItem(str(round(stat_dict["Median_MSE"], 4))))
-        ###################################################
+
         self.start_button.setEnabled(True)
         dig = QMessageBox(self)
         dig.setWindowTitle("Result")
