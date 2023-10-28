@@ -522,7 +522,7 @@ TIN
                <item row="0" column="1">
                 <widget class="QLabel" name="label_5">
                  <property name="text">
-                  <string>Включить фильтрацию по максимальной длинне ребра TIN поверхности</string>
+                  <string>Включить фильтрацию по максимальной длине ребра TIN поверхности</string>
                  </property>
                 </widget>
                </item>
@@ -648,7 +648,7 @@ TIN
           <string notr="true">background-color: rgb(170, 255, 127);</string>
          </property>
          <property name="text">
-          <string>Запуск фильтрации</string>
+          <string>Запуск расчета</string>
          </property>
          <property name="flat">
           <bool>false</bool>
