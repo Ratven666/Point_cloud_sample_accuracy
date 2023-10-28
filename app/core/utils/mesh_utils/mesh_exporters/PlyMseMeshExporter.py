@@ -24,7 +24,8 @@ class PlyMseMeshExporter(PlyMeshExporter):
             if mse > max_mesh_mse:
                 max_mesh_mse = mse
         if min_mesh_mse - max_mesh_mse == float("inf"):
-            raise ValueError("В поверхности не расчитаны СКП!")
+            return 0, float("inf")
+            # raise ValueError("В поверхности не расчитаны СКП!")
         if min_mse is not None:
             return min_mse, max_mesh_mse
         if max_mse is not None:
@@ -40,7 +41,10 @@ class PlyMseMeshExporter(PlyMeshExporter):
             return [0, 255, 0]
         half_mse_delta = (self.max_mse - self.min_mse) / 2
         mse = mse - half_mse_delta - self.min_mse
-        gradient_color = 255 - round((255 * abs(mse)) / half_mse_delta)
+        try:
+            gradient_color = 255 - round((255 * abs(mse)) / half_mse_delta)
+        except ValueError:
+            return [0, 0, 0]
         if mse > 0:
             return [255, gradient_color, 0]
         elif mse < 0:
