@@ -148,3 +148,7 @@ Full.build/
 Full.dist/
 
 Full.onefile-build/
+
+*.zip
+
+*.exe

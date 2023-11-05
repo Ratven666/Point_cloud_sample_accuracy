@@ -529,7 +529,7 @@ class UiPointCloudAnalizer(QWidget):
 "сторона\n"
 "полигона, м:"))
         self.label_5.setText(_translate("PointCloudAnalizer", "Включить фильтрацию по максимальной "
-                                                              "длинне ребра TIN поверхности"))
+                                                              "длине ребра TIN поверхности"))
         self.cb_maxedge_filter.setText(_translate("PointCloudAnalizer", "Включить"))
         self.label_11.setText(_translate("PointCloudAnalizer", "Меньше"))
         self.label_9.setText(_translate("PointCloudAnalizer", "Больше"))
