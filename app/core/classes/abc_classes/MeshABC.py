@@ -61,6 +61,9 @@ class MeshABC:
                 sr += triangle.r
             except TypeError:
                 continue
-        self.mse = (svv / sr) ** 0.5
+        try:
+            self.mse = (svv / sr) ** 0.5
+        except ZeroDivisionError:
+            self.mse = None
         self.r = sr
         return triangles.values()
